@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF Table Extractor</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="page">
+  <header class="hero">
+    <h1>PDF Table Extractor</h1>
+    <p class="subtitle">Upload a PDF, preview the tables it finds side-by-side with the
+      original, and download clean CSVs. Runs entirely on your machine &mdash;
+      nothing is uploaded anywhere.</p>
+  </header>
+
+  {% if error %}
+  <div class="alert">{{ error }}</div>
+  {% endif %}
+
+  <main class="card">
+    <form action="{{ url_for('extract') }}" method="post" enctype="multipart/form-data" id="upload-form">
+      <label class="dropzone" id="dropzone">
+        <input type="file" name="pdf" id="file-input" accept="application/pdf,.pdf" hidden>
+        <span class="dropzone-title">Drop a PDF here, or click to browse</span>
+        <span class="dropzone-hint">Up to 10 MB &middot; scanned/image PDFs need OCR (not supported)</span>
+        <span class="dropzone-file" id="file-name"></span>
+      </label>
+
+      <div class="controls">
+        <label class="control">
+          <span>Detection</span>
+          <select name="method">
+            <option value="auto" selected>Auto (lines + text alignment)</option>
+            <option value="lattice">Lattice (tables with grid lines)</option>
+            <option value="stream">Stream (line-less tables)</option>
+          </select>
+        </label>
+        <button type="submit" class="btn btn-primary">Extract tables</button>
+        <button type="submit" name="use_sample" value="1" class="btn btn-ghost" formnovalidate>
+          Try the sample report
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <section class="how">
+    <div class="how-step">
+      <h2>1. Upload</h2>
+      <p>Pick a PDF or use the bundled sample report.</p>
+    </div>
+    <div class="how-step">
+      <h2>2. Preview</h2>
+      <p>Each table appears next to the original PDF, with its page and detection method.</p>
+    </div>
+    <div class="how-step">
+      <h2>3. Download</h2>
+      <p>Grab any table as CSV, or all of them in one ZIP.</p>
+    </div>
+  </section>
+</div>
+<script>
+  const dropzone = document.getElementById("dropzone");
+  const input = document.getElementById("file-input");
+  const fileName = document.getElementById("file-name");
+  function showName() {
+    fileName.textContent = input.files.length ? "Selected: " + input.files[0].name : "";
+  }
+  input.addEventListener("change", showName);
+  dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("drag"); });
+  dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
+  dropzone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropzone.classList.remove("drag");
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      showName();
+    }
+  });
+</script>
+</body>
+</html>

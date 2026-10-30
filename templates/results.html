@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Results &mdash; PDF Table Extractor</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<div class="page results-page">
+  <header class="results-bar">
+    <div>
+      <a class="back" href="{{ url_for('index') }}">&larr; New extraction</a>
+      <h1>{{ filename }}</h1>
+      <p class="subtitle">{{ page_count }} pages &middot; {{ table_count }}
+        table{{ "s" if table_count != 1 else "" }} found &middot; detection: {{ method }}</p>
+    </div>
+    {% if table_count %}
+    <a class="btn btn-primary" href="{{ url_for('download_all', file_id=file_id) }}">Download all (ZIP)</a>
+    {% endif %}
+  </header>
+
+  {% if not table_count %}
+  <div class="card empty">
+    <h2>No tables found</h2>
+    <p>Try the other detection mode, or check that the PDF contains real text
+      tables rather than scanned images.</p>
+  </div>
+  {% else %}
+  <div class="split">
+    <div class="pdf-pane">
+      <div class="page-nav">
+        {% for p in range(1, page_count + 1) %}
+        <button type="button" class="btn btn-ghost btn-sm page-btn{% if p == 1 %} active{% endif %}"
+                data-page="{{ p }}">Page {{ p }}</button>
+        {% endfor %}
+      </div>
+      <img id="page-view" src="{{ url_for('serve_page_image', file_id=file_id, page=1) }}"
+           alt="Page 1 of the original PDF">
+    </div>
+    <div class="tables-pane">
+      {% for t in tables %}
+      <section class="table-card" id="table-{{ loop.index0 }}">
+        <div class="table-card-head">
+          <div>
+            <h2>Table {{ loop.index }}</h2>
+            <p class="meta">Page {{ t.page }} &middot; {{ t.nrows }} rows &times; {{ t.ncols }} columns
+              &middot; detected by {{ t.method }}</p>
+          </div>
+          <div class="table-card-actions">
+            <button class="btn btn-ghost btn-sm jump" data-page="{{ t.page }}" type="button">
+              Show page {{ t.page }}
+            </button>
+            <a class="btn btn-primary btn-sm"
+               href="{{ url_for('download_csv', file_id=file_id, table_index=loop.index0) }}">CSV</a>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>{% for cell in t.header %}<th>{{ cell }}</th>{% endfor %}</tr>
+            </thead>
+            <tbody>
+              {% for row in t.body %}
+              <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if t.truncated_rows or t.truncated_cols %}
+        <p class="truncated-note">Preview shows the first {{ t.header|length }} columns and
+          {{ t.body|length + 1 }} rows &mdash; the CSV has the full table.</p>
+        {% endif %}
+      </section>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+<script>
+  const viewer = document.getElementById("page-view");
+  const pageBase = "{{ url_for('serve_page_image', file_id=file_id, page=0) }}".replace(/0$/, "");
+  function showPage(n) {
+    viewer.src = pageBase + n;
+    viewer.alt = "Page " + n + " of the original PDF";
+    document.querySelectorAll(".page-btn").forEach((b) =>
+      b.classList.toggle("active", b.dataset.page === String(n)));
+  }
+  document.querySelectorAll(".page-btn").forEach((btn) => {
+    btn.addEventListener("click", () => showPage(btn.dataset.page));
+  });
+  document.querySelectorAll(".jump").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      showPage(btn.dataset.page);
+      document.querySelector(".pdf-pane").scrollIntoView({ behavior: "smooth" });
+    });
+  });
+</script>
+</body>
+</html>
