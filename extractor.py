@@ -69,12 +69,6 @@ def _extract_stream(page):
         for rows in _split_stream_table(table):
             tables.append(rows)
     return tables
-    if len(a) != len(b):
-        return False
-    return all(
-        len(ra) == len(rb) and all(ca == cb for ca, cb in zip(ra, rb))
-        for ra, rb in zip(a, b)
-    )
 
 
 def _same_table(a, b):
