@@ -122,6 +122,10 @@ def extract_tables(pdf_bytes, method="auto", max_pages=20):
     """
     if method not in ("auto", "lattice", "stream"):
         raise ValueError("method must be 'auto', 'lattice' or 'stream'")
+    if max_pages < 1:
+        # pdf.pages[:-5] would silently drop the last five pages, so a bad
+        # limit fails loudly instead of returning partial results.
+        raise ValueError("max_pages must be at least 1")
 
     tables = []
     with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:

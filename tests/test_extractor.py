@@ -87,6 +87,13 @@ def test_bad_method_raises(two_table_pdf):
         extract_tables(two_table_pdf, method="grid")
 
 
+def test_non_positive_max_pages_raises(two_table_pdf):
+    with pytest.raises(ValueError):
+        extract_tables(two_table_pdf, max_pages=0)
+    with pytest.raises(ValueError):
+        extract_tables(two_table_pdf, max_pages=-3)
+
+
 def test_garbage_bytes_raise(two_table_pdf=None):
     with pytest.raises(Exception):
         extract_tables(b"this is not a pdf at all")
