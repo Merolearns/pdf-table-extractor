@@ -9,7 +9,8 @@ from reportlab.platypus import (PageBreak, Paragraph, SimpleDocTemplate, Spacer,
                                 Table, TableStyle)
 from reportlab.lib.styles import getSampleStyleSheet
 
-from extractor import clean_table, extract_tables, render_page, table_to_csv
+from extractor import (_split_stream_table, clean_table, extract_tables,
+                       render_page, table_to_csv)
 
 SAMPLE = os.path.join(os.path.dirname(__file__), "..", "samples", "sample_report.pdf")
 
@@ -97,6 +98,16 @@ def test_non_positive_max_pages_raises(two_table_pdf):
 def test_garbage_bytes_raise(two_table_pdf=None):
     with pytest.raises(Exception):
         extract_tables(b"this is not a pdf at all")
+
+
+def test_split_stream_table_empty_table():
+    class EmptyTable:
+        def extract(self):
+            return []
+
+        rows = []
+
+    assert _split_stream_table(EmptyTable()) == []
 
 
 def test_clean_table_strips_and_drops_empties():

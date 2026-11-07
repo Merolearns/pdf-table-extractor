@@ -45,6 +45,10 @@ def _split_stream_table(table):
     """
     raw = table.extract()
     heights = [row.bbox[3] - row.bbox[1] for row in table.rows]
+    if not heights:
+        # A stream-detected table with no rows has no median height to
+        # split on; there is nothing to extract from it.
+        return []
     median = sorted(heights)[len(heights) // 2]
     groups, current = [], []
     for row, height in zip(raw, heights):
