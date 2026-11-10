@@ -84,6 +84,28 @@ def _same_table(a, b):
     )
 
 
+def _cells_equal_modulo_splits(cells_a, cells_b):
+    """True when one cell list is the other with some cells split in two.
+
+    Same joined text, and one list's cell boundaries are a subset of the
+    other's — so ["Po", "p"] matches ["Pop"], but ["ab", "c"] does not
+    match ["a", "bc"]: their boundaries (2 vs 1) are unrelated, so the
+    rows are genuinely different, not one table split two ways.
+    """
+    if "".join(cells_a) != "".join(cells_b):
+        return False
+
+    def boundaries(cells):
+        pos, cuts = 0, set()
+        for cell in cells[:-1]:
+            pos += len(cell)
+            cuts.add(pos)
+        return cuts
+
+    cuts_a, cuts_b = boundaries(cells_a), boundaries(cells_b)
+    return cuts_a <= cuts_b or cuts_b <= cuts_a
+
+
 def _rows_equal_modulo_splits(a, b):
     """True when both tables hold the same rows, but one splits cells further.
 
@@ -93,7 +115,7 @@ def _rows_equal_modulo_splits(a, b):
     """
     if len(a) != len(b):
         return False
-    return all("".join(ra) == "".join(rb) for ra, rb in zip(a, b))
+    return all(_cells_equal_modulo_splits(ra, rb) for ra, rb in zip(a, b))
 
 
 def _dedupe(tables):

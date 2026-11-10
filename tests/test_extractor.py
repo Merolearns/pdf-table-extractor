@@ -9,8 +9,8 @@ from reportlab.platypus import (PageBreak, Paragraph, SimpleDocTemplate, Spacer,
                                 Table, TableStyle)
 from reportlab.lib.styles import getSampleStyleSheet
 
-from extractor import (_split_stream_table, clean_table, extract_tables,
-                       render_page, table_to_csv)
+from extractor import (_rows_equal_modulo_splits, _split_stream_table,
+                       clean_table, extract_tables, render_page, table_to_csv)
 
 SAMPLE = os.path.join(os.path.dirname(__file__), "..", "samples", "sample_report.pdf")
 
@@ -98,6 +98,14 @@ def test_non_positive_max_pages_raises(two_table_pdf):
 def test_garbage_bytes_raise(two_table_pdf=None):
     with pytest.raises(Exception):
         extract_tables(b"this is not a pdf at all")
+
+
+def test_rows_equal_modulo_splits():
+    # A column split in two still counts as the same table.
+    assert _rows_equal_modulo_splits([["Po", "p"], ["x", "y"]], [["Pop"], ["x", "y"]])
+    # But rows that only match when cell boundaries are ignored do not.
+    assert not _rows_equal_modulo_splits([["ab", "c"]], [["a", "bc"]])
+    assert not _rows_equal_modulo_splits([["ab", "c"]], [["ab", "c", "d"]])
 
 
 def test_split_stream_table_empty_table():
