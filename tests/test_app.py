@@ -120,6 +120,12 @@ def test_bad_csv_index_404(client, sample_bytes):
     assert client.get("/pdf/doesnotexist").status_code == 404
 
 
+def test_negative_csv_index_404(client, sample_bytes):
+    # A negative index used to wrap around and serve the last table.
+    file_id = extract_file_id(client, sample_bytes)
+    assert client.get(f"/csv/{file_id}/-1").status_code == 404
+
+
 def test_api_extract(client, sample_bytes):
     resp = client.post(
         "/api/extract",

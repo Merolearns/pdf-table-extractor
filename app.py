@@ -143,6 +143,10 @@ def serve_page_image(file_id, page):
 @app.route("/csv/<file_id>/<int:table_index>")
 def download_csv(file_id, table_index):
     entry = get_file(file_id)
+    if table_index < 0:
+        # Flask's <int:> converter accepts negatives, and tables[-1] would
+        # silently serve the last table instead of a 404.
+        abort(404)
     try:
         tables, _ = extract_tables(entry["data"], method="auto")
         rows = tables[table_index]["rows"]
