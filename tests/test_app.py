@@ -120,6 +120,26 @@ def test_bad_csv_index_404(client, sample_bytes):
     assert client.get("/pdf/doesnotexist").status_code == 404
 
 
+def test_csv_downloads_match_displayed_method(client, sample_bytes):
+    # Lattice finds only the page-1 table on the sample; auto finds two.
+    # Downloads used to re-run auto extraction, so /csv/1 served the
+    # page-2 table even though the lattice results page showed one table.
+    resp = upload(client, sample_bytes, method="lattice")
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "Table 1" in html
+    marker = "/page-img/"
+    start = html.index(marker) + len(marker)
+    file_id = html[start:start + 32]
+    first = client.get(f"/csv/{file_id}/0")
+    assert first.status_code == 200
+    assert first.get_data(as_text=True).splitlines()[0] == "Region,Q1,Q2,Q3,Q4"
+    assert client.get(f"/csv/{file_id}/1").status_code == 404
+    resp = client.get(f"/csv-all/{file_id}")
+    assert resp.status_code == 200
+    assert len(zipfile.ZipFile(io.BytesIO(resp.data)).namelist()) == 1
+
+
 def test_negative_csv_index_404(client, sample_bytes):
     # A negative index used to wrap around and serve the last table.
     file_id = extract_file_id(client, sample_bytes)

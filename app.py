@@ -23,7 +23,11 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10 MB uploads
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SAMPLE_PATH = os.path.join(BASE_DIR, "samples", "sample_report.pdf")
 
-# file_id -> {"name": str, "data": bytes}. Bounded so the process can't grow
+# file_id -> {"name": str, "data": bytes, "tables": [extracted table dicts]}.
+# The tables are stored with the file so CSV downloads serve exactly the
+# tables the results page showed: re-extracting at download time with
+# method="auto" used to serve a different table set than a lattice/stream
+# extraction had displayed. Bounded so the process can't grow
 # without limit while the dev server runs.
 FILE_STORE = OrderedDict()
 MAX_STORED_FILES = 10
@@ -32,9 +36,9 @@ PREVIEW_ROWS = 12
 PREVIEW_COLS = 8
 
 
-def store_file(name, data):
+def store_file(name, data, tables=None):
     file_id = uuid.uuid4().hex
-    FILE_STORE[file_id] = {"name": name, "data": data}
+    FILE_STORE[file_id] = {"name": name, "data": data, "tables": tables or []}
     while len(FILE_STORE) > MAX_STORED_FILES:
         FILE_STORE.popitem(last=False)
     return file_id
@@ -100,7 +104,7 @@ def extract():
     except Exception as exc:
         return render_template("index.html", error=f"Could not read that PDF: {exc}"), 400
 
-    file_id = store_file(filename, pdf_bytes)
+    file_id = store_file(filename, pdf_bytes, tables)
     return render_template(
         "results.html",
         filename=filename,
@@ -140,6 +144,19 @@ def serve_page_image(file_id, page):
     )
 
 
+def _stored_tables(entry):
+    """Tables shown on the results page for this upload.
+
+    Falls back to a fresh auto extraction for entries stored without
+    tables (none are created that way today, but a download must not
+    404 just because the stored copy is missing).
+    """
+    tables = entry.get("tables")
+    if tables is None:
+        tables, _ = extract_tables(entry["data"], method="auto")
+    return tables
+
+
 @app.route("/csv/<file_id>/<int:table_index>")
 def download_csv(file_id, table_index):
     entry = get_file(file_id)
@@ -148,7 +165,7 @@ def download_csv(file_id, table_index):
         # silently serve the last table instead of a 404.
         abort(404)
     try:
-        tables, _ = extract_tables(entry["data"], method="auto")
+        tables = _stored_tables(entry)
         rows = tables[table_index]["rows"]
     except (IndexError, Exception):
         abort(404)
@@ -164,7 +181,7 @@ def download_csv(file_id, table_index):
 def download_all(file_id):
     entry = get_file(file_id)
     try:
-        tables, _ = extract_tables(entry["data"], method="auto")
+        tables = _stored_tables(entry)
     except Exception:
         abort(404)
     buf = io.BytesIO()
