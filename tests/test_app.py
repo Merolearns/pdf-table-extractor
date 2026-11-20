@@ -154,9 +154,37 @@ def test_api_extract(client, sample_bytes):
     )
     assert resp.status_code == 200
     body = resp.get_json()
+    assert body["method"] == "auto"
     assert body["pages"] == 2
     assert body["table_count"] == 2
     assert body["tables"][0]["rows"][0] == ["Region", "Q1", "Q2", "Q3", "Q4"]
+
+
+def test_api_extract_accepts_method(client, sample_bytes):
+    # The web form has a Detection picker, but the API always forced auto.
+    resp = client.post(
+        "/api/extract",
+        data={"pdf": (io.BytesIO(sample_bytes), "report.pdf"), "method": "lattice"},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["method"] == "lattice"
+    assert body["tables"]
+    assert all(t["method"] == "lattice" for t in body["tables"])
+
+
+def test_api_extract_unknown_method_falls_back_to_auto(client, sample_bytes):
+    # Same fallback as the web form: an unknown method means auto, not an error.
+    resp = client.post(
+        "/api/extract",
+        data={"pdf": (io.BytesIO(sample_bytes), "report.pdf"), "method": "bogus"},
+        content_type="multipart/form-data",
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["method"] == "auto"
+    assert body["table_count"] == 2
 
 
 def test_api_rejects_missing_file(client):

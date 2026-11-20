@@ -208,12 +208,18 @@ def api_extract():
         return jsonify({"error": "multipart field 'pdf' is required"}), 400
     if not upload.filename.lower().endswith(".pdf"):
         return jsonify({"error": "file must be a PDF"}), 400
+    # Same method picker as the web form: auto/lattice/stream. Anything
+    # else falls back to auto instead of erroring, like the form does.
+    method = request.form.get("method", "auto")
+    if method not in ("auto", "lattice", "stream"):
+        method = "auto"
     try:
-        tables, page_count = extract_tables(upload.read(), method="auto")
+        tables, page_count = extract_tables(upload.read(), method=method)
     except Exception as exc:
         return jsonify({"error": f"could not read PDF: {exc}"}), 400
     return jsonify({
         "filename": upload.filename,
+        "method": method,
         "pages": page_count,
         "table_count": len(tables),
         "tables": [

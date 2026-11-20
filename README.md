@@ -23,10 +23,12 @@ python app.py
 
 Open http://127.0.0.1:5000, upload a PDF (or click **Try the sample report**).
 
-The results page shows each extracted table next to a rendered image of its original page — use **Show page N** to jump between pages — with per-table CSV download and a **Download all (ZIP)** button. There is also a JSON API:
+The results page shows each extracted table next to a rendered image of its original page — use **Show page N** to jump between pages — with per-table CSV download and a **Download all (ZIP)** button. There is also a JSON API — it takes the same `method` picker as the web
+form (`auto`, `lattice` or `stream`; anything else falls back to `auto`),
+and the response echoes the method used:
 
 ```bash
-curl -F "pdf=@samples/sample_report.pdf" http://127.0.0.1:5000/api/extract
+curl -F "pdf=@samples/sample_report.pdf" -F "method=lattice" http://127.0.0.1:5000/api/extract
 ```
 
 ## Example
