@@ -50,7 +50,7 @@ Travel,150,165,180
 ## Tests
 
 ```bash
-pytest tests/ -q   # 27 tests
+pytest tests/ -q   # 33 tests
 ```
 
 ## Limitations (honest ones)

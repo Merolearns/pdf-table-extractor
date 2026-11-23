@@ -201,3 +201,53 @@ def test_api_extract_unknown_method_falls_back_to_auto(client, sample_bytes):
 def test_api_rejects_missing_file(client):
     resp = client.post("/api/extract", data={})
     assert resp.status_code == 400
+
+
+def test_long_pdf_warns_only_first_20_pages_scanned(client, tmp_path, sample_bytes):
+    # A 21-page PDF with its only table on page 21: the extractor only
+    # scans the first 20 pages, so the results page must say so instead
+    # of implying all 21 pages were scanned.
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import (PageBreak, Paragraph, SimpleDocTemplate,
+                                    Table, TableStyle)
+
+    styles = getSampleStyleSheet()
+    story = []
+    for n in range(1, 21):
+        story.append(Paragraph(f"Filler page {n}", styles["Normal"]))
+        story.append(PageBreak())
+    table = Table([["Hidden", "Value"], ["Page21", "123"]])
+    table.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.75, colors.black),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.append(table)
+    path = str(tmp_path / "long.pdf")
+    SimpleDocTemplate(path, pagesize=letter).build(story)
+    with open(path, "rb") as f:
+        pdf_bytes = f.read()
+
+    resp = upload(client, pdf_bytes)
+    assert resp.status_code == 200
+    html = resp.get_data(as_text=True)
+    assert "21 pages" in html
+    assert "Only the first 20 pages were scanned" in html
+    assert "Page21" not in html  # the page-21 table was never scanned
+
+    api_resp = client.post(
+        "/api/extract",
+        data={"pdf": (io.BytesIO(pdf_bytes), "long.pdf")},
+        content_type="multipart/form-data",
+    )
+    assert api_resp.status_code == 200
+    body = api_resp.get_json()
+    assert body["pages"] == 21
+    assert body["pages_scanned"] == 20
+    assert body["table_count"] == 0
+
+    # A short PDF shows no such notice.
+    resp = upload(client, sample_bytes)
+    assert "Only the first" not in resp.get_data(as_text=True)

@@ -127,6 +127,8 @@ def extract():
         file_id=file_id,
         method=method,
         page_count=page_count,
+        pages_scanned=min(page_count, MAX_SCAN_PAGES),
+        truncated=page_count > MAX_SCAN_PAGES,
         table_count=len(tables),
         tables=[preview_table(t) for t in tables],
         full_tables=tables,
@@ -237,6 +239,7 @@ def api_extract():
         "filename": upload.filename,
         "method": method,
         "pages": page_count,
+        "pages_scanned": min(page_count, MAX_SCAN_PAGES),
         "table_count": len(tables),
         "tables": [
             {"page": t["page"], "method": t["method"],
