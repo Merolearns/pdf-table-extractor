@@ -35,6 +35,11 @@ MAX_STORED_FILES = 10
 PREVIEW_ROWS = 12
 PREVIEW_COLS = 8
 
+# extract_tables only scans the first 20 pages of a PDF by default; the
+# results page and the API say so explicitly instead of implying every
+# page was scanned.
+MAX_SCAN_PAGES = 20
+
 
 def store_file(name, data, tables=None):
     file_id = uuid.uuid4().hex
@@ -72,6 +77,17 @@ def preview_table(table):
         "truncated_rows": truncated_rows,
         "truncated_cols": truncated_cols,
     }
+
+
+@app.errorhandler(413)
+def file_too_large(error):
+    # MAX_CONTENT_LENGTH fires before the route runs, so an oversized
+    # upload would otherwise land on Werkzeug's bare error page with no
+    # way back to the extractor.
+    return render_template(
+        "index.html",
+        error="That file is over the 10 MB limit — try a smaller PDF.",
+    ), 413
 
 
 @app.route("/", methods=["GET"])

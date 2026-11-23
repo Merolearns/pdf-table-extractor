@@ -79,6 +79,17 @@ def test_rejects_garbage_pdf(client):
     assert resp.status_code == 400
 
 
+def test_rejects_oversized_upload_with_app_error_page(client):
+    # The 10 MB limit fires before the route runs; the app should answer
+    # with its own index page, not Werkzeug's bare 413 page.
+    big = b"%PDF-1.4" + b"x" * (10 * 1024 * 1024 + 1)
+    resp = upload(client, big, filename="big.pdf")
+    assert resp.status_code == 413
+    html = resp.get_data(as_text=True)
+    assert "over the 10 MB limit" in html
+    assert "PDF Table Extractor" in html
+
+
 def test_serve_pdf_roundtrip(client, sample_bytes):
     file_id = extract_file_id(client, sample_bytes)
     resp = client.get(f"/pdf/{file_id}")
