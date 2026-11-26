@@ -148,6 +148,9 @@ def test_table_to_csv_quotes():
     csv_text = table_to_csv(rows)
     assert csv_text.splitlines()[0] == "Name,Note"
     assert '"loves, commas"' in csv_text
+    # Plain cells stay unquoted: the writer quotes only when needed, so a
+    # docstring claiming "all fields quoted" was wrong about the behavior.
+    assert csv_text.splitlines()[1] == 'Ana,"loves, commas"'
 
 
 def test_max_pages_respected():

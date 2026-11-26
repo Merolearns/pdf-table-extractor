@@ -194,7 +194,7 @@ def render_page(pdf_bytes, page_number, resolution=110):
 
 
 def table_to_csv(rows):
-    """Render cleaned table rows as a CSV string (all fields quoted)."""
+    """Render cleaned table rows as a CSV string (fields quoted only when needed)."""
     import csv
 
     buf = io.StringIO()
