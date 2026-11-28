@@ -37,7 +37,7 @@
             <option value="stream">Stream (line-less tables)</option>
           </select>
         </label>
-        <button type="submit" class="btn btn-primary">Extract tables</button>
+        <button type="submit" class="btn btn-primary" id="extract-btn">Extract tables</button>
         <button type="submit" name="use_sample" value="1" class="btn btn-ghost" formnovalidate>
           Try the sample report
         </button>
@@ -68,6 +68,13 @@
     fileName.textContent = input.files.length ? "Selected: " + input.files[0].name : "";
   }
   input.addEventListener("change", showName);
+  // extraction can take a few seconds, so confirm the submit instantly
+  // instead of leaving a live-looking button behind
+  document.getElementById("upload-form").addEventListener("submit", () => {
+    const btn = document.getElementById("extract-btn");
+    btn.disabled = true;
+    btn.textContent = "Extracting…";
+  });
   dropzone.addEventListener("dragover", (e) => { e.preventDefault(); dropzone.classList.add("drag"); });
   dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
   dropzone.addEventListener("drop", (e) => {
